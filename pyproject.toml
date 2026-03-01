@@ -1,0 +1,11 @@
+[project]
+name = "moze-split-record-tool"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "discord-py>=2.7.0",
+    "pytest>=8.4.2",
+    "python-dotenv>=1.2.1",
+]

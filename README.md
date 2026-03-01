@@ -4,10 +4,13 @@ MOZE Discord 記帳機器人。透過 Slash Command 輸入共同花費，計算 
 
 ## 1. 開發環境建置
 
+### 安裝 uv
+本專案使用 `uv` 管理。若尚未安裝，請參考 [uv 官網](https://github.com/astral-sh/uv)。
+
 ### 套件安裝
-使用 `pip` 安裝：
+使用 `uv` 同步套件：
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 ### 環境變數設定
@@ -22,11 +25,11 @@ DISCORD_TOKEN=YOUR_TOKEN_HERE
 
 ## 2. 執行機器人
 ```bash
-python main.py
+uv run main.py
 ```
 
 ## 3. 測試
 使用 `pytest` 執行單元測試：
 ```bash
-pytest
+uv run pytest
 ```

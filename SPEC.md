@@ -4,9 +4,9 @@
 開發一個 Discord 記帳機器人。透過 Slash Command 輸入共同花費，計算 AA 制金額，並回傳帶有 MOZE URL Scheme 的按鈕，讓雙方一鍵寫入 iOS MOZE App，並且Bot 會將紀錄寫入 Google Sheets 備份。
 
 ## 2. 技術棧
-- 語言：Python 3.10+，並使用UV進行安裝package與系統
+- 語言：Python 3.10+
+- 套件與專案管理：`uv` (用於安裝、管理與執行 Python 專案)
 - 框架：`discord.py` (需使用 app_commands 實作斜線指令)
-- 套件管理：`pip` + `requirements.txt`
 - 環境變數：`python-dotenv` 讀取 `.env` 檔中的 `DISCORD_TOKEN`
 
 ## 3. 核心功能：`/expense` 指令
