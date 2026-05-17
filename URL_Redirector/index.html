@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>Redirecting...</title>
+</head>
+<body>
+    <p>正在為您開啟 App...</p>
+    <script>
+        // 取得網址參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const target = urlParams.get('target');
+
+        // 檢查是否有 target 參數並且以 moze:// 開頭
+        if (target && target.startsWith('moze://')) {
+            // 嘗試跳轉
+            window.location.href = target;
+
+            // 延遲後嘗試關閉視窗 (部分瀏覽器可能因安全限制無法關閉)
+            setTimeout(() => {
+                window.close();
+            }, 2000);
+        } else {
+            document.body.innerHTML = "無效的連結參數";
+        }
+    </script>
+</body>
+</html>
