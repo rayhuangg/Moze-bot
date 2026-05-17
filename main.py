@@ -1,5 +1,6 @@
 import os
 import discord
+import urllib.parse
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -9,6 +10,9 @@ from datetime import datetime
 # Load environment variables
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+
+# Redirector URL from docs/USAGE.md
+REDIRECT_BASE_URL = "https://rayhuangg.github.io/Moze-bot/index.html?target="
 
 class MyBot(commands.Bot):
     def __init__(self):
@@ -63,8 +67,8 @@ async def expense(
     final_date = date if date else now.strftime("%Y.%m.%d")
     final_time = time if time else now.strftime("%H:%M")
     
-    # 產生 URL
-    moze3_url, moze_url = generate_moze_urls(
+    # 產生原始 URL Scheme
+    moze3_raw, moze_raw = generate_moze_urls(
         subcategory=subcategory.value, 
         amount=amount, 
         store=store, 
@@ -73,6 +77,10 @@ async def expense(
         currency=currency, 
         note=note
     )
+    
+    # 封裝為重導向連結 (解決 Discord 無法直接開啟 URL Scheme 的問題)
+    moze3_url = f"{REDIRECT_BASE_URL}{urllib.parse.quote(moze3_raw, safe='')}"
+    moze_url = f"{REDIRECT_BASE_URL}{urllib.parse.quote(moze_raw, safe='')}"
     
     # 建立 Embed 訊息
     item_display = store
@@ -85,9 +93,7 @@ async def expense(
         f"🔗 **一鍵記帳**：\n"
         f"👩 [moze3 點我記帳]({moze3_url})\n"
         f"👦 [moze 點我記帳]({moze_url})\n\n"
-        f"💡 *如果上方連結無法點選，請使用下方原始網址：*\n"
-        f"👩 {moze3_url}\n"
-        f"👦 {moze_url}"
+        f"💡 *如果連結無法開啟，請確認您的裝置已安裝 MOZE App*"
     )
     
     embed = discord.Embed(

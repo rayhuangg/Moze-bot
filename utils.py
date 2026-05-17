@@ -20,7 +20,7 @@ def generate_moze_urls(subcategory, amount, store=None, date=None, time=None, cu
     params = {
         "amount": amount,
         "account": "錢包",
-        "category": "飲食", # 預設類別，SPEC 沒說 subcategory 對應哪個 category，暫定飲食
+        # "category": "飲食", # 預設類別，SPEC 沒說 subcategory 對應哪個 category，暫定飲食
         "subcategory": subcategory,
         "project": "生活開銷",
         "date": date,
