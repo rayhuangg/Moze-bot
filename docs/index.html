@@ -11,8 +11,8 @@
         const urlParams = new URLSearchParams(window.location.search);
         const target = urlParams.get('target');
 
-        // 檢查是否有 target 參數並且以 moze:// 開頭
-        if (target && target.startsWith('moze://')) {
+        // 檢查是否有 target 參數並且以 moze:// 或 moze3:// 開頭
+        if (target && (target.startsWith('moze://') || target.startsWith('moze3://'))) {
             // 嘗試跳轉
             window.location.href = target;
 
@@ -21,7 +21,7 @@
                 window.close();
             }, 2000);
         } else {
-            document.body.innerHTML = "無效的連結參數";
+            document.body.innerHTML = target ? "無效的連結格式：必須以 moze:// 或 moze3:// 開頭" : "缺少 target 參數";
         }
     </script>
 </body>
