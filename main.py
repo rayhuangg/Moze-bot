@@ -4,17 +4,11 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 from utils import generate_moze_urls
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-
-class MozeView(discord.ui.View):
-    def __init__(self, boy_url: str, girl_url: str):
-        super().__init__()
-        # 建立兩個網址按鈕
-        self.add_item(discord.ui.Button(label="👩 女友記帳", url=girl_url, emoji="👩"))
-        self.add_item(discord.ui.Button(label="👦 男友記帳", url=boy_url, emoji="👦"))
 
 class MyBot(commands.Bot):
     def __init__(self):
@@ -35,15 +29,14 @@ bot = MyBot()
 
 @bot.tree.command(name="expense", description="記錄一筆共同花費")
 @app_commands.describe(
-    payer="誰付的錢？",
-    subcategory="類別",
-    amount="總金額",
-    store="店家名稱 (選填)"
+    subcategory="類別 (必填)",
+    amount="總金額 (必填)",
+    store="店家名稱 (必填)",
+    date="日期 YYYY.MM.dd (預設今日)",
+    time="時間 HH:mm (預設現在)",
+    currency="幣別 (預設 TWD)",
+    note="備註 (選填)"
 )
-@app_commands.choices(payer=[
-    app_commands.Choice(name="Ray", value="Ray"),
-    app_commands.Choice(name="Moyichen", value="Moyichen"),
-])
 @app_commands.choices(subcategory=[
     app_commands.Choice(name="早餐", value="早餐"),
     app_commands.Choice(name="午餐", value="午餐"),
@@ -57,25 +50,54 @@ bot = MyBot()
 ])
 async def expense(
     interaction: discord.Interaction, 
-    payer: app_commands.Choice[str], 
     subcategory: app_commands.Choice[str], 
     amount: int, 
-    store: str = None
+    store: str,
+    date: str = None,
+    time: str = None,
+    currency: str = "TWD",
+    note: str = None
 ):
+    # 處理預設時間
+    now = datetime.now()
+    final_date = date if date else now.strftime("%Y.%m.%d")
+    final_time = time if time else now.strftime("%H:%M")
+    
     # 產生 URL
-    boy_url, girl_url = generate_moze_urls(payer.value, subcategory.value, amount, store)
+    moze3_url, moze_url = generate_moze_urls(
+        subcategory=subcategory.value, 
+        amount=amount, 
+        store=store, 
+        date=final_date, 
+        time=final_time, 
+        currency=currency, 
+        note=note
+    )
     
     # 建立 Embed 訊息
-    item_display = store if store else subcategory.value
+    item_display = store
+    
+    description = (
+        f"💰 **總額**: {amount} {currency}\n"
+        f"🏪 **店家**: {store}\n"
+        f"📅 **時間**: {final_date} {final_time}\n"
+        f"📝 **備註**: {note if note else '無'}\n\n"
+        f"🔗 **一鍵記帳**：\n"
+        f"👩 [moze3 點我記帳]({moze3_url})\n"
+        f"👦 [moze 點我記帳]({moze_url})\n\n"
+        f"💡 *如果上方連結無法點選，請使用下方原始網址：*\n"
+        f"👩 {moze3_url}\n"
+        f"👦 {moze_url}"
+    )
+    
     embed = discord.Embed(
         title=f"[{item_display}] 記帳確認",
-        description=f"總額 {amount} / 由 {payer.name} 先墊",
+        description=description,
         color=discord.Color.green()
     )
     
-    # 回覆訊息與按鈕
-    view = MozeView(boy_url, girl_url)
-    await interaction.response.send_message(embed=embed, view=view)
+    # 回覆訊息
+    await interaction.response.send_message(embed=embed)
 
 def main():
     if not TOKEN:

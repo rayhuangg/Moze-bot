@@ -1,36 +1,45 @@
 import urllib.parse
+from datetime import datetime
 
-def generate_moze_urls(payer, subcategory, amount, item=None):
+def generate_moze_urls(subcategory, amount, store=None, date=None, time=None, currency="TWD", note=None):
     """
     根據 SPEC.md 第 4 點 POC 需求產生 MOZE URL Scheme。
-    男友 (Ray): moze3://
-    女友 (Moyichen): moze://
+    按鈕 1: moze3://
+    按鈕 2: moze://
+    雙方內容相同，不進行 AA 分攤。
     """
-    # AA 分攤邏輯：餘數由男友負擔
-    girl_amount = amount // 2
-    boy_amount = amount - girl_amount
+    # 預設值
+    if not date:
+        date = datetime.now().strftime("%Y.%m.%d")
+    if not time:
+        time = datetime.now().strftime("%H:%M")
 
-    # 預設值與編碼
-    # POC 範例中包含 account, category, subcategory, project, name
-    # 我們假設 category 與 project 為固定值，item 映射到 name
-    base_params = {
+    # 建立參數字典
+    # 根據 SPEC 需求：amount, account, category, subcategory, project
+    # 以及選填的 store, date, time, currency, note
+    params = {
+        "amount": amount,
         "account": "錢包",
-        "category": "飲食",
+        "category": "飲食", # 預設類別，SPEC 沒說 subcategory 對應哪個 category，暫定飲食
         "subcategory": subcategory,
-        "project": "生活開銷"
+        "project": "生活開銷",
+        "date": date,
+        "time": time,
+        "currency": currency
     }
-    
-    if item:
-        base_params["name"] = item
 
-    def build_url(scheme, split_amount):
-        params = base_params.copy()
-        params["amount"] = split_amount
+    if store:
+        params["store"] = store
+
+    if note:
+        params["note"] = note
+
+    def build_url(scheme):
         # 使用 quote 編碼中文字元
         query_string = "&".join([f"{k}={urllib.parse.quote(str(v))}" for k, v in params.items()])
         return f"{scheme}new?{query_string}"
 
-    boy_url = build_url("moze3://", boy_amount)
-    girl_url = build_url("moze://", girl_amount)
+    moze3_url = build_url("moze3://")
+    moze_url = build_url("moze://")
 
-    return boy_url, girl_url
+    return moze3_url, moze_url
