@@ -11,3 +11,8 @@ services:
       - .env
     environment:
       - PYTHONUNBUFFERED=1
+    # --- 以下為 NAS 部署超時排查選項 ---
+    network_mode: "host" # 若遇到 Connection Timeout，優先取消此行註解
+    # dns:                 # 若 DNS 解析失敗，可手動指定 DNS
+    #   - 8.8.8.8
+    #   - 1.1.1.1
