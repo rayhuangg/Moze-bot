@@ -21,3 +21,7 @@ htmlcov/
 .vscode/
 .idea/
 *.swp
+
+*.tar
+*.rar
+*zip

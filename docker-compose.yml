@@ -1,0 +1,13 @@
+services:
+  moze-bot:
+    build:
+      context: .
+      platforms:
+        - linux/amd64
+    image: moze-bot:latest
+    container_name: moze-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
