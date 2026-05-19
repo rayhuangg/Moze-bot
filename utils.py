@@ -1,18 +1,24 @@
 import urllib.parse
 from datetime import datetime
+from zoneinfo import ZoneInfo
+
+TAIPEI_TZ = ZoneInfo("Asia/Taipei")
+
+
+def get_taipei_now():
+    return datetime.now(TAIPEI_TZ)
 
 def generate_moze_urls(subcategory, amount, store=None, date=None, time=None, currency="TWD", note=None):
     """
     根據 SPEC.md 第 4 點 POC 需求產生 MOZE URL Scheme。
     按鈕 1: moze3://
     按鈕 2: moze://
-    雙方內容相同，不進行 AA 分攤。
     """
     # 預設值
     if not date:
-        date = datetime.now().strftime("%Y.%m.%d")
+        date = get_taipei_now().strftime("%Y.%m.%d")
     if not time:
-        time = datetime.now().strftime("%H:%M")
+        time = get_taipei_now().strftime("%H:%M")
 
     # 建立參數字典
     # 根據 SPEC 需求：amount, account, category, subcategory, project
@@ -20,7 +26,6 @@ def generate_moze_urls(subcategory, amount, store=None, date=None, time=None, cu
     params = {
         "amount": amount,
         "account": "錢包",
-        # "category": "飲食", # 預設類別，SPEC 沒說 subcategory 對應哪個 category，暫定飲食
         "subcategory": subcategory,
         "project": "生活開銷",
         "date": date,

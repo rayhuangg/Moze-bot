@@ -5,8 +5,7 @@ import urllib.parse
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
-from utils import generate_moze_urls
-from datetime import datetime
+from utils import generate_moze_urls, get_taipei_now
 
 # 設定標準日誌輸出
 logging.basicConfig(
@@ -60,7 +59,7 @@ bot = MyBot()
     app_commands.Choice(name="晚餐", value="晚餐"),
     app_commands.Choice(name="點心", value="點心"),
     app_commands.Choice(name="飲料", value="飲料"),
-    app_commands.Choice(name="消夜", value="消夜"),
+    app_commands.Choice(name="宵夜", value="宵夜"),
     app_commands.Choice(name="採購", value="採購"),
     app_commands.Choice(name="食材", value="食材"),
     app_commands.Choice(name="水果", value="水果"),
@@ -79,10 +78,10 @@ async def expense(
     logger.info(f"[指令接收] 用戶: {interaction.user.name} (ID: {interaction.user.id})")
     # logger.info(f"頻道: {interaction.channel.name if hasattr(interaction.channel, 'name') else 'DM'} (ID: {interaction.channel.id})")
     # logger.info(f"指令: /expense")
-    logger.info(f"參數: 類別={subcategory.value}, 金額={amount}, 店家={store}, 日期={date}, 時間={time}, 幣別={currency}, 備註={note}")
+    logger.info(f"類別={subcategory.value}, 金額={amount}, 店家={store}, 日期={date}, 時間={time}, 幣別={currency}, 備註={note}")
 
     # 處理預設時間
-    now = datetime.now()
+    now = get_taipei_now()
     final_date = date if date else now.strftime("%Y.%m.%d")
     final_time = time if time else now.strftime("%H:%M")
 
@@ -105,14 +104,14 @@ async def expense(
     item_display = store
 
     description = (
+        f"🏪 **類型**: {subcategory}\n"
         f"💰 **總額**: {amount} {currency}\n"
         f"🏪 **店家**: {store}\n"
         f"📅 **時間**: {final_date} {final_time}\n"
         f"📝 **備註**: {note if note else '無'}\n\n"
         f"🔗 **一鍵記帳**：\n"
         f"👩 [moze3 點我記帳]({moze3_url})\n"
-        f"👦 [moze 點我記帳]({moze_url})\n\n"
-        f"💡 *如果連結無法開啟，請確認您的裝置已安裝 MOZE App*"
+        f"👩 [moze 點我記帳]({moze_url})\n\n"
     )
 
     embed = discord.Embed(
