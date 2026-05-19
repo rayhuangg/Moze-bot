@@ -100,22 +100,18 @@ async def expense(
     moze3_url = f"{REDIRECT_BASE_URL}{urllib.parse.quote(moze3_raw, safe='')}"
     moze_url = f"{REDIRECT_BASE_URL}{urllib.parse.quote(moze_raw, safe='')}"
 
-    # 建立 Embed 訊息
-    item_display = store
-
     description = (
-        f"🏪 **類型**: {subcategory}\n"
+        f"🏪 **類型**: {subcategory.value}\n"
         f"💰 **總額**: {amount} {currency}\n"
         f"🏪 **店家**: {store}\n"
         f"📅 **時間**: {final_date} {final_time}\n"
-        f"📝 **備註**: {note if note else '無'}\n\n"
-        f"🔗 **一鍵記帳**：\n"
-        f"👩 [moze3 點我記帳]({moze3_url})\n"
+        f"🔗 **記帳URL**：\n"
+        f"👦 [moze3 點我記帳]({moze3_url})\n"
         f"👩 [moze 點我記帳]({moze_url})\n\n"
     )
 
     embed = discord.Embed(
-        title=f"[{item_display}] 記帳確認",
+        title=f"記帳確認",
         description=description,
         color=discord.Color.green()
     )
