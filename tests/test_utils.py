@@ -30,7 +30,7 @@ def test_generate_moze_urls_custom_datetime():
 def test_generate_moze_urls_no_store():
     # 測試未提供店家名稱
     moze3_url, _ = generate_moze_urls("點心", 50)
-    assert "store=" not in moze3_url
+    assert "store=" in moze3_url
 
 
 def test_generate_moze_urls_uses_taipei_timezone_defaults(monkeypatch):

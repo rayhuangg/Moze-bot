@@ -104,6 +104,7 @@ async def time_autocomplete(
     subcategory="類別 (必填)",
     amount="總金額 (必填)",
     store="店家名稱 (必填)",
+    name='商品名稱 (選填)',
     date="日期 (可點選或輸入 YYYY.MM.dd)",
     time="時間 (可點選或輸入 HH:mm)",
     currency="幣別 (預設 TWD)",
@@ -128,6 +129,7 @@ async def expense(
     subcategory: app_commands.Choice[str],
     amount: int,
     store: str,
+    name: str = None,
     date: str = None,
     time: str = None,
     currency: str = "TWD",
@@ -135,7 +137,7 @@ async def expense(
 ):
     # 記錄斜線指令的接收
     logger.info(f"[指令接收] 用戶: {interaction.user.name} (ID: {interaction.user.id})")
-    logger.info(f"類別={subcategory.value}, 金額={amount}, 店家={store}, 日期={date}, 時間={time}, 幣別={currency}, 備註={note}")
+    logger.info(f"類別={subcategory.value}, 金額={amount}, 店家={store}, 名稱={name}, 日期={date}, 時間={time}, 幣別={currency}, 備註={note}")
 
     # 處理預設時間 (如果使用者沒有選擇也沒有手動輸入)
     now = get_taipei_now()
@@ -147,6 +149,7 @@ async def expense(
         subcategory=subcategory.value,
         amount=amount,
         store=store,
+        name=name,
         date=final_date,
         time=final_time,
         currency=currency,
@@ -161,6 +164,7 @@ async def expense(
         f"🏪 **類型**: {subcategory.value}\n"
         f"💰 **總額**: {amount} {currency}\n"
         f"🏪 **店家**: {store}\n"
+        f"🛒 **商品**: {name if name else '無'}\n"
         f"📅 **時間**: {final_date} {final_time}\n"
         f"📝 **備註**: {note if note else '無'}\n\n"
         f"🔗 **記帳URL**：\n"

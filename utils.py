@@ -8,7 +8,7 @@ TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 def get_taipei_now():
     return datetime.now(TAIPEI_TZ)
 
-def generate_moze_urls(subcategory, amount, store=None, date=None, time=None, currency="TWD", note=None):
+def generate_moze_urls(subcategory, amount, store=None, date=None, time=None, currency="TWD", note=None, name=None):
     """
     根據 SPEC.md 第 4 點 POC 需求產生 MOZE URL Scheme。
     按鈕 1: moze3://
@@ -21,8 +21,8 @@ def generate_moze_urls(subcategory, amount, store=None, date=None, time=None, cu
         time = get_taipei_now().strftime("%H:%M")
 
     # 建立參數字典
-    # 根據 SPEC 需求：amount, account, category, subcategory, project
-    # 以及選填的 store, date, time, currency, note
+    # 根據 SPEC 需求：amount, account, subcategory, project
+    # 以及選填的 store, date, time, currency, note, name
     params = {
         "amount": amount,
         "account": "錢包",
@@ -30,11 +30,12 @@ def generate_moze_urls(subcategory, amount, store=None, date=None, time=None, cu
         "project": "生活開銷",
         "date": date,
         "time": time,
-        "currency": currency
+        "store": store,
+        "name": name
     }
 
-    if store:
-        params["store"] = store
+    if currency:
+        params["currency"] = currency
 
     if note:
         params["note"] = note
