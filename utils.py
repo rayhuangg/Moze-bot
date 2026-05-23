@@ -30,8 +30,7 @@ def generate_moze_urls(subcategory, amount, store=None, date=None, time=None, cu
         "project": "生活開銷",
         "date": date,
         "time": time,
-        "store": store,
-        "name": name
+        "store": store
     }
 
     if currency:
@@ -39,6 +38,9 @@ def generate_moze_urls(subcategory, amount, store=None, date=None, time=None, cu
 
     if note:
         params["note"] = note
+
+    if name:
+        params["name"] = name
 
     def build_url(scheme):
         # 使用 quote 編碼中文字元
