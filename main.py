@@ -45,6 +45,63 @@ class MyBot(commands.Bot):
 
 bot = MyBot()
 
+
+class OtherCategoryModal(discord.ui.Modal, title="請輸入記帳類別"):
+    other_category_input = discord.ui.TextInput(
+        label="未提供項目名稱，請輸入記帳類別(如:機票)",
+        style=discord.TextStyle.short,
+        placeholder="輸入記帳類別名稱",
+        max_length=50,
+    )
+
+    def __init__(self, interaction: discord.Interaction, amount: int, store: str, name: str, final_date: str, final_time: str, currency: str, note: str):
+        super().__init__()
+        self._interaction = interaction
+        self._amount = amount
+        self._store = store
+        self._name = name
+        self._date = final_date
+        self._time = final_time
+        self._currency = currency
+        self._note = note
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        final_subcategory = self.other_category_input.value
+
+        moze3_raw, moze_raw = generate_moze_urls(
+            subcategory=final_subcategory,
+            amount=self._amount,
+            store=self._store,
+            name=self._name,
+            date=self._date,
+            time=self._time,
+            currency=self._currency,
+            note=self._note,
+        )
+
+        moze3_url = f"{REDIRECT_BASE_URL}{urllib.parse.quote(moze3_raw, safe='')}"
+        moze_url = f"{REDIRECT_BASE_URL}{urllib.parse.quote(moze_raw, safe='')}"
+
+        description = (
+            f"🏪 **類型**: {final_subcategory}\n"
+            f"💰 **總額**: {self._amount} {self._currency}\n"
+            f"🏪 **店家**: {self._store}\n"
+            f"🛒 **商品**: {self._name if self._name else '無'}\n"
+            f"📅 **時間**: {self._date} {self._time}\n"
+            f"📝 **備註**: {self._note if self._note else '無'}\n\n"
+            f"🔗 **記帳URL**：\n"
+            f"👦 [moze3 點我記帳]({moze3_url})\n"
+            f"👩 [moze 點我記帳]({moze_url})\n\n"
+        )
+
+        embed = discord.Embed(
+            title=f"記帳確認",
+            description=description,
+            color=discord.Color.green()
+        )
+
+        await interaction.response.send_message(embed=embed)
+
 # --- Autocomplete Functions ---
 
 async def date_autocomplete(
@@ -79,7 +136,7 @@ async def time_autocomplete(
     choices.append(app_commands.Choice(name=f"現在 ({now.strftime('%H:%M')})", value=now.strftime("%H:%M")))
 
     # 2. 常用間隔
-    intervals = [5, 10, 15, 30, 60]
+    intervals = [30, 60]
     for mins in intervals:
         target_time = now - timedelta(minutes=mins)
         time_str = target_time.strftime("%H:%M")
@@ -122,6 +179,7 @@ async def time_autocomplete(
     app_commands.Choice(name="日常用品", value="日常用品"),
     app_commands.Choice(name="住宿", value="住宿"),
     app_commands.Choice(name="電影", value="電影"),
+    app_commands.Choice(name="其他", value="其他"),
 ])
 @app_commands.autocomplete(date=date_autocomplete, time=time_autocomplete)
 async def expense(
@@ -133,20 +191,39 @@ async def expense(
     date: str = None,
     time: str = None,
     currency: str = "TWD",
-    note: str = None
+    note: str = None,
+    other_category: str = None
 ):
-    # 記錄斜線指令的接收
+    # 記錄指的接收
     logger.info(f"[指令接收] 用戶: {interaction.user.name} (ID: {interaction.user.id})")
-    logger.info(f"類別={subcategory.value}, 金額={amount}, 店家={store}, 名稱={name}, 日期={date}, 時間={time}, 幣別={currency}, 備註={note}")
+    logger.info(f"類別={(other_category if other_category else (subcategory.value if subcategory else 'None'))}, 金額={amount}, 店家={store}, 名稱={name}, 日期={date}, 時間={time}, 幣別={currency}, 備註={note}")
 
     # 處理預設時間 (如果使用者沒有選擇也沒有手動輸入)
     now = get_taipei_now()
     final_date = date if date else now.strftime("%Y.%m.%d")
     final_time = time if time else now.strftime("%H:%M")
 
+    # 如果提供了其他類別，優先使用該值；否則使用選單類別（若有）
+    # 若使用者選了「其他」但尚未填寫 other_category，開啟 modal 收集
+    if (subcategory and subcategory.value == '其他') and not other_category:
+        modal = OtherCategoryModal(
+            interaction=interaction,
+            amount=amount,
+            store=store,
+            name=name,
+            final_date=final_date,
+            final_time=final_time,
+            currency=currency,
+            note=note,
+        )
+        await interaction.response.send_modal(modal)
+        return
+
+    final_subcategory = other_category if other_category else (subcategory.value if subcategory else '未提供')
+
     # 產生原始 URL Scheme
     moze3_raw, moze_raw = generate_moze_urls(
-        subcategory=subcategory.value,
+        subcategory=final_subcategory,
         amount=amount,
         store=store,
         name=name,
@@ -161,7 +238,7 @@ async def expense(
     moze_url = f"{REDIRECT_BASE_URL}{urllib.parse.quote(moze_raw, safe='')}"
 
     description = (
-        f"🏪 **類型**: {subcategory.value}\n"
+        f"🏪 **類型**: {final_subcategory}\n"
         f"💰 **總額**: {amount} {currency}\n"
         f"🏪 **店家**: {store}\n"
         f"🛒 **商品**: {name if name else '無'}\n"
