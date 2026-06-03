@@ -42,3 +42,33 @@ def test_generate_moze_urls_uses_taipei_timezone_defaults(monkeypatch):
 
     assert "date=2026.05.19" in moze3_url
     assert "time=22%3A20" in moze3_url
+
+
+def test_generate_moze_urls_name_and_currency():
+    # 測試商品名稱與幣別
+    moze3_url, moze_url = generate_moze_urls(
+        "點心", 150, currency="USD", name="甜甜圈"
+    )
+    decoded_moze3_url = urllib.parse.unquote(moze3_url)
+    decoded_moze_url = urllib.parse.unquote(moze_url)
+
+    assert "currency=USD" in decoded_moze3_url
+    assert "currency=USD" in decoded_moze_url
+    assert "name=甜甜圈" in decoded_moze3_url
+    assert "name=甜甜圈" in decoded_moze_url
+
+
+def test_generate_moze_urls_no_currency_or_name():
+    # 測試不提供幣別（為 None 或空字串時不應包含在 url 參數中）與不提供商品名稱
+    moze3_url, _ = generate_moze_urls("點心", 150, currency=None, name=None)
+    decoded_moze3_url = urllib.parse.unquote(moze3_url)
+    assert "currency=" not in decoded_moze3_url
+    assert "name=" not in decoded_moze3_url
+
+
+def test_get_taipei_now():
+    # 測試 get_taipei_now 回傳的時間是否是台北時區
+    now = utils.get_taipei_now()
+    assert now.tzinfo is not None
+    assert now.tzinfo.key == "Asia/Taipei"
+
