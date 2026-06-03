@@ -2,12 +2,13 @@ import os
 import discord
 import logging
 import urllib.parse
+import re
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 from utils import generate_moze_urls, get_taipei_now
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Optional
 
 # 設定標準日誌輸出
 logging.basicConfig(
@@ -46,35 +47,88 @@ class MyBot(commands.Bot):
 bot = MyBot()
 
 
-class OtherCategoryModal(discord.ui.Modal, title="請輸入記帳類別"):
-    other_category_input = discord.ui.TextInput(
-        label="未提供項目名稱，請輸入記帳類別(如:機票)",
-        style=discord.TextStyle.short,
-        placeholder="輸入記帳類別名稱",
-        max_length=50,
-    )
-
-    def __init__(self, interaction: discord.Interaction, amount: int, store: str, name: str, final_date: str, final_time: str, currency: str, note: str):
+class ExpenseModal(discord.ui.Modal, title="補充記帳資訊"):
+    def __init__(
+        self,
+        interaction: discord.Interaction,
+        amount: int,
+        store: str,
+        name: Optional[str],
+        date: str,
+        time: str,
+        currency: str,
+        note: Optional[str],
+        subcategory_val: str,
+        needs_category: bool,
+        needs_date: bool,
+        needs_time: bool
+    ):
         super().__init__()
         self._interaction = interaction
         self._amount = amount
         self._store = store
         self._name = name
-        self._date = final_date
-        self._time = final_time
+        self._date = date
+        self._time = time
         self._currency = currency
         self._note = note
+        self._subcategory_val = subcategory_val
+        self._needs_category = needs_category
+        self._needs_date = needs_date
+        self._needs_time = needs_time
+
+        if needs_category:
+            self.category_input = discord.ui.TextInput(
+                label="記帳類別 (如: 機票)",
+                placeholder="請輸入類別名稱",
+                max_length=50,
+                required=True
+            )
+            self.add_item(self.category_input)
+
+        if needs_date:
+            self.date_input = discord.ui.TextInput(
+                label="日期 (格式: YYYY.MM.dd)",
+                placeholder="例如: 2024.01.01",
+                default=date if date != "自訂" else get_taipei_now().strftime("%Y.%m.%d"),
+                min_length=10,
+                max_length=10,
+                required=True
+            )
+            self.add_item(self.date_input)
+
+        if needs_time:
+            self.time_input = discord.ui.TextInput(
+                label="時間 (格式: HH:mm)",
+                placeholder="例如: 14:30",
+                default=time if time != "自訂" else get_taipei_now().strftime("%H:%M"),
+                min_length=5,
+                max_length=5,
+                required=True
+            )
+            self.add_item(self.time_input)
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        final_subcategory = self.other_category_input.value
+        final_subcategory = self.category_input.value if self._needs_category else self._subcategory_val
+        final_date = self.date_input.value if self._needs_date else self._date
+        final_time = self.time_input.value if self._needs_time else self._time
+
+        # 簡單的正則驗證
+        if self._needs_date and not re.match(r"^\d{4}\.\d{2}\.\d{2}$", final_date):
+            await interaction.response.send_message("❌ 日期格式錯誤，請使用 YYYY.MM.dd (例如 2024.01.01)", ephemeral=True)
+            return
+
+        if self._needs_time and not re.match(r"^\d{2}:\d{2}$", final_time):
+            await interaction.response.send_message("❌ 時間格式錯誤，請使用 HH:mm (例如 14:30)", ephemeral=True)
+            return
 
         moze3_raw, moze_raw = generate_moze_urls(
             subcategory=final_subcategory,
             amount=self._amount,
             store=self._store,
             name=self._name,
-            date=self._date,
-            time=self._time,
+            date=final_date,
+            time=final_time,
             currency=self._currency,
             note=self._note,
         )
@@ -87,7 +141,7 @@ class OtherCategoryModal(discord.ui.Modal, title="請輸入記帳類別"):
             f"💰 **總額**: {self._amount} {self._currency}\n"
             f"🏪 **店家**: {self._store}\n"
             f"🛒 **商品**: {self._name if self._name else '無'}\n"
-            f"📅 **時間**: {self._date} {self._time}\n"
+            f"📅 **時間**: {final_date} {final_time}\n"
             f"📝 **備註**: {self._note if self._note else '無'}\n\n"
             f"🔗 **記帳URL**：\n"
             f"👦 [moze3 點我記帳]({moze3_url})\n"
@@ -111,12 +165,15 @@ async def date_autocomplete(
     now = get_taipei_now()
     choices = []
 
-    # 提供最近 7 天的選項
-    labels = ["今天", "昨天", "前天"]
+    # 1. 自訂選項
+    choices.append(app_commands.Choice(name="📅 自訂日期 (手動輸入)", value="自訂"))
+
+    # 2. 提供最近 7 天的選項，使用星期縮寫顯示
+    weekday_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     for i in range(7):
         target_date = now - timedelta(days=i)
         date_str = target_date.strftime("%Y.%m.%d")
-        label = labels[i] if i < len(labels) else f"{i} 天前"
+        label = weekday_labels[target_date.weekday()]
 
         display_name = f"{label} ({date_str})"
         # 如果使用者已經開始輸入，過濾符合的選項
@@ -132,17 +189,20 @@ async def time_autocomplete(
     now = get_taipei_now()
     choices = []
 
-    # 1. 現在時間
+    # 1. 自訂選項
+    choices.append(app_commands.Choice(name="⏰ 自訂時間 (手動輸入)", value="自訂"))
+
+    # 2. 現在時間
     choices.append(app_commands.Choice(name=f"現在 ({now.strftime('%H:%M')})", value=now.strftime("%H:%M")))
 
-    # 2. 常用間隔
+    # 3. 常用間隔
     intervals = [30, 60]
     for mins in intervals:
         target_time = now - timedelta(minutes=mins)
         time_str = target_time.strftime("%H:%M")
         choices.append(app_commands.Choice(name=f"{mins} 分鐘前 ({time_str})", value=time_str))
 
-    # 3. 最近的整點
+    # 4. 最近的整點
     current_hour = now.hour
     for i in range(5):
         hour = (current_hour - i) % 24
@@ -162,8 +222,8 @@ async def time_autocomplete(
     amount="總金額 (必填)",
     store="店家名稱 (必填)",
     name='商品名稱 (選填)',
-    date="日期 (可點選或輸入 YYYY.MM.dd)",
-    time="時間 (可點選或輸入 HH:mm)",
+    date="日期",
+    time="時間",
     currency="幣別 (預設 TWD)",
     note="備註 (選填)"
 )
@@ -200,25 +260,32 @@ async def expense(
 
     # 處理預設時間 (如果使用者沒有選擇也沒有手動輸入)
     now = get_taipei_now()
-    final_date = date if date else now.strftime("%Y.%m.%d")
-    final_time = time if time else now.strftime("%H:%M")
 
-    # 如果提供了其他類別，優先使用該值；否則使用選單類別（若有）
-    # 若使用者選了「其他」但尚未填寫 other_category，開啟 modal 收集
-    if (subcategory and subcategory.value == '其他') and not other_category:
-        modal = OtherCategoryModal(
+    # 判斷是否需要開啟 Modal
+    needs_category = (subcategory and subcategory.value == '其他') and not other_category
+    needs_date = (date == "自訂")
+    needs_time = (time == "自訂")
+
+    if needs_category or needs_date or needs_time:
+        modal = ExpenseModal(
             interaction=interaction,
             amount=amount,
             store=store,
             name=name,
-            final_date=final_date,
-            final_time=final_time,
+            date=date if date else now.strftime("%Y.%m.%d"),
+            time=time if time else now.strftime("%H:%M"),
             currency=currency,
             note=note,
+            subcategory_val=subcategory.value if subcategory else "其他",
+            needs_category=needs_category,
+            needs_date=needs_date,
+            needs_time=needs_time
         )
         await interaction.response.send_modal(modal)
         return
 
+    final_date = date if date else now.strftime("%Y.%m.%d")
+    final_time = time if time else now.strftime("%H:%M")
     final_subcategory = other_category if other_category else (subcategory.value if subcategory else '未提供')
 
     # 產生原始 URL Scheme
